@@ -1,73 +1,68 @@
-# Virtual Private Cloud(VPC) Integration
+# VPC
 
-### **VPCs & Lambda — Summary Notes**
+### VPC Basics
 
-- VPC stands for **Virtual Private Cloud**.
-- VPCs create **isolated private networks** inside AWS.
-- They allow fine-grained control of **network access (inbound/outbound)**.
-- Used to protect sensitive data like **personal info, banking, credentials**, etc.
-
-------
-
-### **Subnet Types**
-
-- **Public subnet**
-  - Has direct access to the **public internet**.
-  - Internet routing depends on proper **route table configuration**.
-- **Private subnet**
-  - **No direct public internet access**.
-  - Used for sensitive resources like **databases**.
+- VPC = **Virtual Private Cloud**.
+- Creates an **isolated private network** inside AWS.
+- Lets you control **inbound and outbound traffic**.
+- Used to securely host resources like **databases, EC2, Lambda**, etc.
 
 ------
 
-### **Why VPCs Matter**
+### Public vs Private Subnets
 
-- Essential for **security, compliance**, and preventing unwanted public exposure.
-- Common private-subnet resources: **RDS (Postgres/MySQL), Redis, Elasticsearch, EC2 backend servers**.
-
-------
-
-### **Lambda + VPC**
-
-- When creating a Lambda, you can choose whether to attach it to a **VPC**.
-- Only required when the function needs to access **private resources** (ex: RDS, ElastiCache, internal services).
-- A Lambda **NOT in a VPC** can still access public AWS services normally.
+- **Public Subnet:**
+  - Has access to the public internet (if route table allows).
+- **Private Subnet:**
+  - No direct inbound or outbound internet access.
 
 ------
 
-### **ENIs (Elastic Network Interfaces)**
+### Why VPCs Matter
 
-- When Lambda runs inside a VPC, AWS creates **ENIs** (network adapters) in selected subnets.
-- Historically caused **slow cold starts** (sometimes up to 15 seconds).
-- In **2019**, AWS introduced **Hyperplane** networking — eliminating the cold start penalty.
-
-------
-
-### **Internet Access from Private Subnets**
-
-- Lambda in a private subnet **cannot access the internet by default**.
-- To enable external calls (like APIs, 3rd-party services), use:
-  - **NAT Gateway** in a **public subnet**
-  - Route table rule: private subnet → NAT Gateway → Internet Gateway
-- **Internet Gateway** provides public internet connectivity for outbound traffic.
+- Critical for **security and compliance**.
+- Used when storing sensitive data (names, IDs, banking info).
+- Databases and sensitive compute should live in **private subnets**.
 
 ------
 
-### **VPC Endpoints**
+### Lambda and VPCs
 
-- Used to access AWS services **privately**, without going through the public internet.
-- Reduce latency and improve security.
-- Supported services include: **S3 and DynamoDB**.
-- With an endpoint:
-  - Lambda → VPC endpoint → Service (no internet exposure)
+- When creating a Lambda function, you can choose whether it runs **inside a VPC**.
+- Only required if Lambda needs to access resources **not publicly accessible** (example: private RDS, Elasticache, Elasticsearch).
 
 ------
 
-### **Connection Flow Examples**
+### Avoiding Public Exposure
 
-1. **Private Lambda accessing database**
-   - Lambda in private subnet → DB in same private subnet → works directly.
-2. **Lambda calling external API**
-   - Lambda → NAT Gateway → Internet Gateway → external service
-3. **Lambda calling S3 (with endpoint)**
-   - Lambda → VPC endpoint → S3 (no internet)
+- Example: You *can* give RDS a public IP, but doing so exposes it to attacks.
+- Best practice: keep resources private and run Lambda in the **same VPC**.
+
+------
+
+### ENIs (Elastic Network Interfaces)
+
+- AWS creates **ENIs** for Lambda when placed inside a VPC.
+- In the past, ENI creation added **significant cold start latency** (sometimes up to 15 seconds).
+- AWS solved this in **2019** with a feature called **Hyperplane**.
+- Result: VPC-enabled Lambdas no longer suffer cold-start penalties.
+
+------
+
+### Internet Access for Private Subnets
+
+- Lambda in a private subnet does **not** have public internet access by default.
+- To enable outbound calls (e.g., third-party APIs) you need:
+  - **NAT Gateway** (paid resource)
+  - **Internet Gateway** (free)
+- Traffic goes: Lambda → NAT Gateway → Internet Gateway → Internet.![vpc-nat](../assets/vpc-nat.png)
+
+------
+
+### VPC Endpoints
+
+- Provides **private connectivity** to supported AWS services.
+- Currently supports: **S3 and DynamoDB**.
+- Allows traffic to stay inside the AWS network instead of going through the public internet.
+- Improves **security** and reduces **latency**.![vpc-endpoint](../assets/vpc-endpoint.png)
+
